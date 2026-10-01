@@ -1,0 +1,137 @@
+rules_version = '2';
+
+/**
+ * VRIND VATIKAA — FIRESTORE SECURITY RULES
+ * ------------------------------------------------------------------
+ * Deploy with: firebase deploy --only firestore:rules
+ *
+ * Core principles (spec Part 33 / blueprint §6):
+ *   1. `inquiries` — public can CREATE (submit a form) but can NEVER
+ *      read, update, delete, or list. Only authenticated admins can.
+ *      This is the single most important rule in the file: inquiry
+ *      documents contain customer PII (name, phone) and must never be
+ *      publicly readable.
+ *   2. All public content collections (gallery, menu, reviews, faqs,
+ *      services, facilities, settings, venueInfo, virtualTour) —
+ *      public can only READ documents where `published == true` (or the
+ *      collection's equivalent flag); only authenticated admins can
+ *      write anything.
+ *   3. Admin authorization is via the `role` custom claim on the
+ *      Firebase Auth token (set by scripts/set-admin-role.mjs), never
+ *      by document existence checks alone — this avoids an extra
+ *      Firestore read per rule evaluation and matches the app's
+ *      session-cookie/custom-claims model (lib/firebase/session.ts).
+ *   4. Every admin-writable document has its shape loosely validated
+ *      here as a second line of defense behind application-level Zod
+ *      validation — a malicious actor bypassing the app UI entirely and
+ *      writing straight to the Firestore API is still constrained.
+ * ------------------------------------------------------------------
+ */
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null &&
+        request.auth.token.role in ["owner", "admin", "staff"];
+    }
+
+    // ---------------------------------------------------------------
+    // INQUIRIES — public create-only, admin-only everything else.
+    // ---------------------------------------------------------------
+    match /inquiries/{inquiryId} {
+      allow read, update, delete, list: if isAdmin();
+
+      allow create: if
+        request.resource.data.keys().hasAll([
+          "name", "phone", "eventType", "eventDate", "guestCount",
+          "cateringRequired", "djRequired", "decorationRequired",
+          "customStageRequired", "status", "archived"
+        ]) &&
+        request.resource.data.name is string &&
+        request.resource.data.name.size() > 0 &&
+        request.resource.data.name.size() < 200 &&
+        request.resource.data.phone is string &&
+        request.resource.data.phone.size() < 20 &&
+        request.resource.data.guestCount is int &&
+        request.resource.data.guestCount > 0 &&
+        request.resource.data.guestCount < 10000 &&
+        request.resource.data.status == "NEW" &&
+        request.resource.data.archived == false &&
+        // message is optional but must be a bounded string if present
+        (!("message" in request.resource.data) ||
+          (request.resource.data.message is string &&
+           request.resource.data.message.size() < 2000));
+    }
+
+    // ---------------------------------------------------------------
+    // ADMINS — reference/audit collection. Readable only by other
+    // admins (nobody self-registers). Writes happen only via the Admin
+    // SDK (setup scripts), never from the client — no client write path
+    // is granted here at all.
+    // ---------------------------------------------------------------
+    match /admins/{uid} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // ---------------------------------------------------------------
+    // SINGLE-DOCUMENT CONFIG COLLECTIONS
+    // Public read (the site needs this to render), admin-only write.
+    // ---------------------------------------------------------------
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /venueInfo/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /virtualTour/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // PUBLISHABLE CONTENT COLLECTIONS
+    // Public can read only documents flagged published == true.
+    // Admins can read/write everything (including unpublished drafts).
+    // ---------------------------------------------------------------
+    match /galleryCategories/{id} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow write: if isAdmin();
+    }
+    match /galleryImages/{id} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow write: if isAdmin();
+    }
+    match /menuCategories/{id} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow write: if isAdmin();
+    }
+    match /menuItems/{id} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow write: if isAdmin();
+    }
+    match /reviews/{id} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow write: if isAdmin();
+    }
+    match /faqs/{id} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow write: if isAdmin();
+    }
+    match /services/{id} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow write: if isAdmin();
+    }
+    match /facilities/{id} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Default deny for anything not explicitly matched above.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

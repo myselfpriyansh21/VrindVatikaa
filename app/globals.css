@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   VRIND VATIKAA — DESIGN TOKENS
+   Source of truth: Project Blueprint Part 13 (Official Colour Palette).
+   Do NOT hardcode these hex values anywhere else in the codebase — always
+   reference the CSS variables or the Tailwind utility classes below.
+   ========================================================================== */
+
+:root {
+  /* ---- Backgrounds ---- */
+  --vrind-black: #0b0b0c;           /* Main background — dominant surface */
+  --vrind-black-secondary: #121214; /* Alternating sections, nav areas */
+  --vrind-surface: #18181a;         /* Cards, dialogs, drawers, panels */
+
+  /* ---- Gold accents ---- */
+  --vrind-gold: #d4a72c;         /* Primary brand gold */
+  --vrind-gold-bright: #e5b83f;  /* Hover / interactive emphasis */
+  --vrind-gold-light: #f2cc63;   /* Rare highlight / small emphasis */
+  --vrind-gold-muted: #8f7120;   /* Subtle borders, disabled gold states */
+
+  /* ---- Text ---- */
+  --vrind-text-primary: #ffffff;
+  --vrind-text-secondary: #c4c4c7;
+  --vrind-text-muted: #8f9095;
+
+  /* ---- Subtle overlay tones (borders / glow) ---- */
+  --vrind-gold-glow: rgba(212, 167, 44, 0.15);
+  --vrind-gold-border: rgba(212, 167, 44, 0.15);
+  --vrind-white-border: rgba(255, 255, 255, 0.08);
+
+  /* ---- Restrained semantic colors (UI state only — never branding) ---- */
+  --vrind-success: #3f8f5c;
+  --vrind-warning: #b8842f;
+  --vrind-error: #b6473f;
+  --vrind-info: #3f6f8f;
+
+  /* ---- App-level aliases used by shadcn-style primitives ---- */
+  --background: var(--vrind-black);
+  --foreground: var(--vrind-text-primary);
+  --card: var(--vrind-surface);
+  --card-foreground: var(--vrind-text-primary);
+  --border: var(--vrind-white-border);
+  --primary: var(--vrind-gold);
+  --primary-foreground: var(--vrind-black);
+  --muted: var(--vrind-black-secondary);
+  --muted-foreground: var(--vrind-text-muted);
+  --radius: 0.5rem; /* modest, architectural — not the bubbly SaaS rounded-2xl look */
+}
+
+/* Tailwind v4 CSS-first theme mapping — enables utilities like
+   bg-vrind-black, text-vrind-gold, border-vrind-gold, hover:bg-vrind-gold-bright */
+@theme inline {
+  --color-vrind-black: var(--vrind-black);
+  --color-vrind-black-secondary: var(--vrind-black-secondary);
+  --color-vrind-surface: var(--vrind-surface);
+
+  --color-vrind-gold: var(--vrind-gold);
+  --color-vrind-gold-bright: var(--vrind-gold-bright);
+  --color-vrind-gold-light: var(--vrind-gold-light);
+  --color-vrind-gold-muted: var(--vrind-gold-muted);
+
+  --color-vrind-text-primary: var(--vrind-text-primary);
+  --color-vrind-text-secondary: var(--vrind-text-secondary);
+  --color-vrind-text-muted: var(--vrind-text-muted);
+
+  --color-vrind-success: var(--vrind-success);
+  --color-vrind-warning: var(--vrind-warning);
+  --color-vrind-error: var(--vrind-error);
+  --color-vrind-info: var(--vrind-info);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --font-heading: "Playfair Display", Georgia, serif;
+  --font-body: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+/* This site is dark-luxury by brand identity, not by OS preference —
+   we deliberately do NOT branch on prefers-color-scheme. */
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, .font-heading {
+  font-family: "Playfair Display", Georgia, serif;
+}
+
+/* Safe-area helpers for the mobile sticky bottom bar (Part 9 / Part 29) */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Subtle gold ambient glow utility — CTAs, active cards, logo (Part 13) */
+.glow-gold {
+  box-shadow: 0 0 40px 0 var(--vrind-gold-glow);
+}
+
+/* Scrollbar tuned to brand (non-critical polish, cheap to keep) */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--vrind-black); }
+::-webkit-scrollbar-thumb { background: var(--vrind-gold-muted); border-radius: 999px; }
