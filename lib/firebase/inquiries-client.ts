@@ -10,7 +10,7 @@ import {
   arrayUnion,
   Timestamp,
 } from "firebase/firestore";
-import { getFirebaseDb } from "@/lib/firebase/client";
+import { getFirebaseDb, ensureAuthReady } from "@/lib/firebase/client";
 import type { Inquiry, ContactLogEntry } from "@/types/inquiry";
 import type { InquiryStatus } from "@/config/site";
 
@@ -31,6 +31,7 @@ function normalize(id: string, data: Record<string, unknown>): Inquiry {
     djRequired: !!data.djRequired,
     decorationRequired: !!data.decorationRequired,
     customStageRequired: !!data.customStageRequired,
+        visitRequested: !!data.visitRequested,
     message: (data.message as string) ?? "",
     status: (data.status as Inquiry["status"]) ?? "NEW",
     adminNotes: (data.adminNotes as string) ?? "",
@@ -42,6 +43,7 @@ function normalize(id: string, data: Record<string, unknown>): Inquiry {
 }
 
 export async function listInquiries(): Promise<Inquiry[]> {
+  await ensureAuthReady();
   const db = getFirebaseDb();
   const q = query(collection(db, "inquiries"), orderBy("createdAt", "desc"));
   const snap = await getDocs(q);
@@ -49,11 +51,13 @@ export async function listInquiries(): Promise<Inquiry[]> {
 }
 
 export async function setInquiryStatus(id: string, status: InquiryStatus) {
+  await ensureAuthReady();
   const db = getFirebaseDb();
   await updateDoc(doc(db, "inquiries", id), { status, updatedAt: Timestamp.now() });
 }
 
 export async function setInquiryArchived(id: string, archived: boolean) {
+  await ensureAuthReady();
   const db = getFirebaseDb();
   await updateDoc(doc(db, "inquiries", id), { archived, updatedAt: Timestamp.now() });
 }
@@ -61,6 +65,7 @@ export async function setInquiryArchived(id: string, archived: boolean) {
 /** Appends one simple contact-log entry — kept deliberately lightweight,
  * not a full CRM (spec Part 20). */
 export async function addContactLogEntry(id: string, note: string, method: ContactLogEntry["method"]) {
+  await ensureAuthReady();
   const db = getFirebaseDb();
   const entry: ContactLogEntry = { note, method, contactedAt: new Date().toISOString() };
   await updateDoc(doc(db, "inquiries", id), {

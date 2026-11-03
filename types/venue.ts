@@ -24,6 +24,7 @@ export interface VenueInfo {
   banquetAreaSqft: number;
   lawnAreaSqft: number;
   eventTypes: string[];
+    priceRangeText: string;
 }
 
 export interface VirtualTourConfig {

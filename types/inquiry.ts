@@ -20,6 +20,7 @@ export interface Inquiry {
   decorationRequired: boolean;
   customStageRequired: boolean;
   preferredContactMethod?: "call" | "whatsapp" | "either";
+  visitRequested: boolean;
   message: string;
   status: InquiryStatus;
   adminNotes: string;

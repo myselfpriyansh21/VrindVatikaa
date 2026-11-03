@@ -7,13 +7,10 @@ import { InquiryForm } from "./inquiry-form";
 interface InquiryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  mode?: "quote" | "visit";
 }
 
-/**
- * On mobile this behaves like a bottom sheet; on desktop, a centered
- * modal wide enough for the two-column field layout in InquiryForm.
- */
-export function InquiryDialog({ open, onOpenChange }: InquiryDialogProps) {
+export function InquiryDialog({ open, onOpenChange, mode = "quote" }: InquiryDialogProps) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -27,11 +24,12 @@ export function InquiryDialog({ open, onOpenChange }: InquiryDialogProps) {
           <div className="flex items-start justify-between px-6 pt-6 pb-4 sm:px-8 sm:pt-8">
             <div>
               <Dialog.Title className="font-heading text-2xl text-vrind-text-primary">
-                Check Availability
+                {mode === "visit" ? "Schedule a Site Visit" : "Check Availability"}
               </Dialog.Title>
               <Dialog.Description className="mt-1.5 max-w-sm text-sm text-vrind-text-secondary">
-                Tell us a little about your event and we&apos;ll get back to you
-                with availability and a quote.
+                {mode === "visit"
+                  ? "Tell us when you'd like to see the venue and we'll confirm a time."
+                  : "Tell us a little about your event and we'll get back to you with availability and a quote."}
               </Dialog.Description>
             </div>
             <Dialog.Close
@@ -42,7 +40,7 @@ export function InquiryDialog({ open, onOpenChange }: InquiryDialogProps) {
             </Dialog.Close>
           </div>
           <div className="overflow-y-auto px-6 pb-8 sm:px-8">
-            <InquiryForm onSuccess={() => {}} />
+            <InquiryForm key={mode} mode={mode} onSuccess={() => {}} />
           </div>
         </Dialog.Content>
       </Dialog.Portal>

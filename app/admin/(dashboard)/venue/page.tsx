@@ -75,6 +75,17 @@ function AboutSection() {
             onChange={(e) => setInfo({ ...info, lawnDescription: e.target.value })}
           />
         </div>
+                <div>
+          <label className={labelClasses}>
+            Price range <span className="normal-case text-vrind-text-muted">(optional, leave blank to show no pricing)</span>
+          </label>
+          <input
+            className={fieldClasses}
+            placeholder='e.g. "Packages starting from ₹50,000"'
+            value={info.priceRangeText}
+            onChange={(e) => setInfo({ ...info, priceRangeText: e.target.value })}
+          />
+        </div>
         <div className="grid grid-cols-3 gap-3">
           <div>
             <label className={labelClasses}>Capacity text</label>

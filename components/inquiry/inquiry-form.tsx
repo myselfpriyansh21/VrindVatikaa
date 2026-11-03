@@ -41,7 +41,13 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function InquiryForm({ onSuccess }: { onSuccess?: () => void }) {
+export function InquiryForm({
+  onSuccess,
+  mode = "quote",
+}: {
+  onSuccess?: () => void;
+  mode?: "quote" | "visit";
+}) {
   const settings = useSettings();
   const [submitted, setSubmitted] = useState(false);
 
@@ -70,7 +76,7 @@ export function InquiryForm({ onSuccess }: { onSuccess?: () => void }) {
       const res = await fetch("/api/inquiries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+                body: JSON.stringify({ ...values, visitRequested: mode === "visit" }),
       });
 
       if (!res.ok) {
@@ -85,7 +91,7 @@ export function InquiryForm({ onSuccess }: { onSuccess?: () => void }) {
       const { inquiryId } = await res.json();
       const whatsappUrl = buildInquiryWhatsAppUrl(
         settings.whatsappNumber,
-        values,
+        { ...values, visitRequested: mode === "visit" },
         inquiryId
       );
       window.open(whatsappUrl, "_blank", "noopener,noreferrer");
@@ -251,7 +257,7 @@ export function InquiryForm({ onSuccess }: { onSuccess?: () => void }) {
               <Loader2 className="size-4 animate-spin" /> Sending...
             </>
           ) : (
-            "Request Availability & Quote"
+            mode === "visit" ? "Request Site Visit" : "Request Availability & Quote"
           )}
         </Button>
         <p className="mt-3 text-center text-xs text-vrind-text-muted">

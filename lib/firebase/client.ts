@@ -54,3 +54,25 @@ export function getFirebaseDb(): Firestore {
 export function getGoogleAuthProvider() {
   return new GoogleAuthProvider();
 }
+/**
+ * ROOT-CAUSE FIX for a real bug found in production: on a hard navigation
+ * directly to an /admin/* route (not an in-app link click), the whole
+ * app remounts and every CMS manager's useEffect fires a Firestore read
+ * IMMEDIATELY on mount — but Firebase Auth's client SDK rehydrates the
+ * signed-in session from IndexedDB ASYNCHRONOUSLY. If a Firestore query
+ * reaches the server before that finishes, `request.auth` is still null
+ * when the security rule evaluates, `isAdmin()` is false, and any rule
+ * shaped like `resource.data.published == true || isAdmin()` on an
+ * unconstrained list query gets rejected with permission-denied —
+ * because Firestore can't statically prove an unfiltered query is safe
+ * for an unauthenticated caller, even though every document actually is
+ * published.
+ *
+ * Every client-side Firestore read/write in the admin CMS now awaits
+ * this before touching Firestore, so the call always carries a fully
+ * resolved auth state (signed in or definitively signed out) rather
+ * than racing the SDK's own startup.
+ */
+export async function ensureAuthReady(): Promise<void> {
+  await getFirebaseAuth().authStateReady();
+}

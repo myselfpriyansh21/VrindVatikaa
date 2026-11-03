@@ -52,6 +52,7 @@ export const inquirySchema = z.object({
   customStageRequired: z.boolean(),
 
   preferredContactMethod: z.enum(["call", "whatsapp", "either"]).optional(),
+    visitRequested: z.boolean().optional().default(false),
 
   message: z
     .string()

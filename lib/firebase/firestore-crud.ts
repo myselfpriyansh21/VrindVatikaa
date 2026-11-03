@@ -11,7 +11,7 @@ import {
   orderBy as fsOrderBy,
   serverTimestamp,
 } from "firebase/firestore";
-import { getFirebaseDb } from "@/lib/firebase/client";
+import { getFirebaseDb, ensureAuthReady } from "@/lib/firebase/client";
 
 /**
  * Generic Firestore CRUD helpers for the admin CMS screens.
@@ -33,6 +33,7 @@ export async function listCollection<T>(
   collectionName: string,
   orderByField = "displayOrder"
 ): Promise<(T & { id: string })[]> {
+  await ensureAuthReady();
   const db = getFirebaseDb();
   const q = query(collection(db, collectionName), fsOrderBy(orderByField, "asc"));
   const snap = await getDocs(q);
@@ -43,6 +44,7 @@ export async function createDoc<T extends object>(
   collectionName: string,
   data: T
 ): Promise<string> {
+  await ensureAuthReady();
   const db = getFirebaseDb();
   const ref = await addDoc(collection(db, collectionName), {
     ...data,
@@ -57,6 +59,7 @@ export async function updateDocById<T extends object>(
   id: string,
   data: Partial<T>
 ): Promise<void> {
+  await ensureAuthReady();
   const db = getFirebaseDb();
   await fsUpdateDoc(doc(db, collectionName, id), {
     ...data,
@@ -65,6 +68,7 @@ export async function updateDocById<T extends object>(
 }
 
 export async function deleteDocById(collectionName: string, id: string): Promise<void> {
+  await ensureAuthReady();
   const db = getFirebaseDb();
   await fsDeleteDoc(doc(db, collectionName, id));
 }

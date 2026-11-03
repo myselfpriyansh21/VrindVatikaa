@@ -164,6 +164,11 @@ export default function InquiriesPage() {
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-vrind-text-primary">
                           {inq.name} <span className="text-vrind-text-muted">· {inq.eventType}</span>
+                                                    {inq.visitRequested && (
+                            <span className="ml-1.5 rounded-sm border border-vrind-gold px-1 py-0.5 text-[9px] font-medium uppercase tracking-wide text-vrind-gold">
+                              Visit
+                            </span>
+                          )}
                         </p>
                         <p className="mt-0.5 text-xs text-vrind-text-muted">
                           {inq.phone} · {inq.eventDate ? format(parseISO(inq.eventDate), "d MMM yyyy") : "—"} · {inq.guestCount} guests
@@ -186,7 +191,14 @@ export default function InquiriesPage() {
             ) : (
               <div className="flex flex-col gap-5">
                 <div>
-                  <h2 className="font-heading text-lg text-vrind-text-primary">{selected.name}</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-heading text-lg text-vrind-text-primary">{selected.name}</h2>
+                    {selected.visitRequested && (
+                      <span className="rounded-sm border border-vrind-gold px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-vrind-gold">
+                        Site Visit
+                      </span>
+                    )}
+                  </div>
                   <p className="mt-0.5 text-sm text-vrind-text-muted">{selected.phone}</p>
                   <div className="mt-3 flex gap-2">
                     <a href={`tel:${selected.phone}`} className="flex items-center gap-1.5 rounded-md border border-vrind-white-border px-3 py-1.5 text-xs text-vrind-text-secondary hover:border-vrind-gold hover:text-vrind-gold">

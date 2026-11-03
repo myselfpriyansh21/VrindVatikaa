@@ -6,31 +6,18 @@ import { WhatsAppButton } from "@/components/shared/contact-actions";
 import { useSettings } from "@/lib/firebase/settings-context";
 import { defaultVenueInfo } from "@/lib/venue-defaults";
 
-/**
- * Editorial, bottom-weighted hero — the composition of a hospitality
- * brochure cover rather than a centered SaaS-landing block. Content sits
- * in the lower third over a restrained dark textured panel (fine vertical
- * linework, evoking drapery/mandap staging at very low opacity — not a
- * decorative gradient standing in for a photo).
- *
- * TODO: this component is built to take a real photograph directly —
- * once venue photography is supplied, replace the <div className="hero-texture">
- * background with a full-bleed <Image> (fill) of the actual venue and
- * keep the same dark-overlay + bottom-aligned content structure. No
- * fabricated photography is used here in the meantime.
- */
 export function Hero({
   onCheckAvailability,
   aboutText = defaultVenueInfo.aboutText,
+  priceRangeText = defaultVenueInfo.priceRangeText,
 }: {
   onCheckAvailability: () => void;
   aboutText?: string;
+  priceRangeText?: string;
 }) {
   const settings = useSettings();
   return (
     <section className="relative flex min-h-[88vh] flex-col overflow-hidden border-b border-vrind-white-border/60 bg-vrind-black">
-      {/* Restrained textured backdrop — fine vertical linework fading
-          toward the edges, standing in for photography without faking it */}
       <div className="absolute inset-0" aria-hidden="true">
         <div
           className="absolute inset-0 opacity-[0.06]"
@@ -48,7 +35,6 @@ export function Hero({
         />
       </div>
 
-      {/* Brand mark — small, corner-anchored, not a giant centerpiece */}
       <div className="relative mx-auto w-full max-w-7xl px-6 pt-8 sm:px-8">
         <Image
           src={settings.logoMarkUrl}
@@ -60,7 +46,6 @@ export function Hero({
         />
       </div>
 
-      {/* Content anchored to the lower third */}
       <div className="relative mx-auto mt-auto w-full max-w-7xl px-6 pb-16 sm:px-8 sm:pb-20">
         <p className="text-xs font-medium tracking-[0.3em] text-vrind-text-muted uppercase">
           Telibagh, Lucknow
@@ -81,6 +66,10 @@ export function Hero({
           </Button>
           <WhatsAppButton variant="secondary" size="lg" label="WhatsApp" />
         </div>
+
+        {priceRangeText && (
+          <p className="mt-4 text-sm text-vrind-gold">{priceRangeText}</p>
+        )}
       </div>
     </section>
   );

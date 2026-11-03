@@ -3,8 +3,9 @@
 import { MapPin, Phone, Mail } from "lucide-react";
 import { useSettings } from "@/lib/firebase/settings-context";
 import { WhatsAppButton, CallButton } from "@/components/shared/contact-actions";
+import { Button } from "@/components/ui/button";
 
-export function ContactSection() {
+export function ContactSection({ onScheduleVisit }: { onScheduleVisit?: () => void }) {
   const settings = useSettings();
 
   return (
@@ -42,6 +43,14 @@ export function ContactSection() {
             <CallButton variant="secondary" className="w-full sm:w-auto" />
             <WhatsAppButton variant="primary" className="w-full sm:w-auto" />
           </div>
+          {onScheduleVisit && (
+            <div className="border-t border-vrind-white-border/60 pt-4">
+              <p className="text-sm text-vrind-text-secondary">Prefer to see the venue in person first?</p>
+              <Button variant="ghost" onClick={onScheduleVisit} className="mt-1 -ml-6 text-vrind-gold">
+                Schedule a Site Visit
+              </Button>
+            </div>
+          )}
         </div>
 
         {settings.mapsEmbedUrl ? (

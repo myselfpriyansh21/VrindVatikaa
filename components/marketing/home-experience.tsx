@@ -19,14 +19,6 @@ import type { Faq } from "@/types/faq";
 import type { Review } from "@/types/review";
 import type { GalleryCategory, GalleryImage } from "@/types/gallery";
 
-/**
- * Single client-side shell for the homepage so the "Check Availability"
- * dialog's open/close state can be shared between the header CTA, hero
- * CTA, and mobile bottom bar without prop-drilling through the server
- * page component. app/page.tsx itself stays a Server Component so
- * metadata/SEO export correctly — it fetches faqs/reviews/gallery from
- * Firestore and passes them down here.
- */
 export function HomeExperience({
   faqs,
   reviews,
@@ -47,7 +39,15 @@ export function HomeExperience({
   venueInfo: VenueInfo;
 }) {
   const [inquiryOpen, setInquiryOpen] = useState(false);
-  const openInquiry = () => setInquiryOpen(true);
+  const [inquiryMode, setInquiryMode] = useState<"quote" | "visit">("quote");
+  const openInquiry = () => {
+    setInquiryMode("quote");
+    setInquiryOpen(true);
+  };
+  const openVisitRequest = () => {
+    setInquiryMode("visit");
+    setInquiryOpen(true);
+  };
 
   return (
     <>
@@ -55,19 +55,23 @@ export function HomeExperience({
       <SiteHeader onCheckAvailability={openInquiry} />
 
       <main className="flex-1 pb-20 md:pb-0">
-        <Hero onCheckAvailability={openInquiry} aboutText={venueInfo.aboutText} />
+        <Hero
+          onCheckAvailability={openInquiry}
+          aboutText={venueInfo.aboutText}
+          priceRangeText={venueInfo.priceRangeText}
+        />
         <Pillars venueInfo={venueInfo} />
         <FacilitiesServices services={services} facilities={facilities} />
         <GallerySection categories={galleryCategories} images={galleryImages} />
         <VirtualTourSlot tour={tour} />
         <ReviewsSection reviews={reviews} />
         <FaqAccordion faqs={faqs} />
-        <ContactSection />
+        <ContactSection onScheduleVisit={openVisitRequest} />
       </main>
 
       <SiteFooter />
       <MobileBottomBar onCheckAvailability={openInquiry} />
-      <InquiryDialog open={inquiryOpen} onOpenChange={setInquiryOpen} />
+      <InquiryDialog open={inquiryOpen} onOpenChange={setInquiryOpen} mode={inquiryMode} />
     </>
   );
 }
