@@ -1,109 +1,61 @@
 /**
- * scripts/seed-restaurant-menu.mjs
- * ------------------------------------------------------------------
- * Seeds the real "Ghar Ki Rasoi" restaurant menu (from the owner's
- * printed menu card) into Firestore `menuCategories` + `menuItems`.
+ * Seeds / updates the "Ghar Ki Rasoi" restaurant menu in Firestore.
  *
- * Every item is context: "restaurant" (prices shown publicly) and
- * vegType: "veg" — this is a 100% pure vegetarian restaurant, no
- * non-veg items exist on the source menu at all.
+ * Run:        npm run seed:menu
+ * Preview:    npm run seed:menu -- --dry-run     (prints changes, writes nothing)
  *
- * SAFE TO RE-RUN: categories and items use deterministic IDs derived
- * from their name (e.g. "restaurant-breakfast", "restaurant-breakfast-
- * kulhad-tea"), and the script uses `set({ merge: true })` rather than
- * creating new documents each time. Re-running it with updated prices
- * will update the existing items in place rather than duplicating them
- * — exactly what "prices can be modified later" needs. Any price/name
- * you then change by hand in /admin will NOT be overwritten unless you
- * re-run this script again with new data.
- *
- * Usage (from the project root, after .env.local is filled in):
- *   node --env-file=.env.local scripts/seed-restaurant-menu.mjs
- * ------------------------------------------------------------------
+ * Behaviour (safe to re-run):
+ *  - Items are matched by a deterministic ID (restaurant-<category>-<item>).
+ *  - Existing items: name/description/prices/category/order are updated to match
+ *    this file. Their photo, featured flag and published flag are NOT touched.
+ *  - New items are created (published, no photo, not featured).
+ *  - Items this script created earlier that are no longer on the menu are deleted.
+ *    Items you added by hand in /admin are never deleted.
+ *  - Everything is vegetarian (pure veg restaurant).
  */
 import { cert, initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 
+const DRY = process.argv.includes("--dry-run");
 const projectId = process.env.FIREBASE_PROJECT_ID;
 const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
 const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
-
 if (!projectId || !clientEmail || !privateKey) {
-  console.error(
-    "Missing FIREBASE_PROJECT_ID / FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY.\n" +
-      "Run with: node --env-file=.env.local scripts/seed-restaurant-menu.mjs"
-  );
+  console.error("Missing FIREBASE_* variables. Run: npm run seed:menu");
   process.exit(1);
 }
-
 initializeApp({ credential: cert({ projectId, clientEmail, privateKey }) });
 const db = getFirestore();
 
-function slugify(name) {
-  return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-}
+const slug = (s) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
-// ---------------------------------------------------------------------
-// CATEGORIES (in menu order)
-// ---------------------------------------------------------------------
-const categories = [
-  "Breakfast",
-  "Main Course",
-  "Breads",
-  "Rice",
-  "Beverages",
-  "Snacks",
-  "Combo Bowls",
-  "Thali",
-  "Sweets",
-];
-
-// ---------------------------------------------------------------------
-// ITEMS — grouped by category, in the exact order/prices from the menu.
-// `price`: single price. `half`/`full`: Half|Full pricing. `note`: free
-// text instead of a number (e.g. "MRP").
-// ---------------------------------------------------------------------
-const itemsByCategory = {
+// price = single price | half/full = Half|Full | note = text such as "MRP"
+const MENU = {
   Breakfast: [
-    { name: "Kulhad Tea", price: 20 },
+    { name: "Kulhad Tea", price: 25 },
     { name: "Coffee", price: 40 },
     { name: "Bun + Makhan", price: 40 },
-    { name: "Aloo Paratha", price: 40 },
-    { name: "Onion Paratha", price: 60 },
-    { name: "Paneer Paratha", price: 70 },
-    { name: "Mix Paratha", price: 70, description: "Aloo + Onion + Paneer" },
     { name: "Chola Puri", price: 80, description: "4 pieces" },
     { name: "Chola Bhatura", price: 80, description: "2 pieces" },
     { name: "Aloo Sandwich", price: 40 },
     { name: "Paneer Sandwich", price: 60 },
+    { name: "Besan Chilla", price: 50 },
+    { name: "Veg Omelette", price: 70 },
   ],
-  "Main Course": [
-    { name: "Paneer Butter Masala", half: 140, full: 220 },
-    { name: "Kadhai Paneer", half: 140, full: 220 },
-    { name: "Matar Paneer", half: 120, full: 200 },
-    { name: "Paneer Do Pyaza", half: 140, full: 220 },
-    { name: "Dal Fry", half: 80, full: 120 },
-    { name: "Dal Tadka", half: 90, full: 150 },
-    { name: "Plain Dal", half: 70, full: 100 },
-    { name: "Chola", half: 70, full: 100 },
-    { name: "Rajma", half: 70, full: 100 },
-    { name: "Mix Veg", half: 90, full: 150 },
-    { name: "Aloo Matar", half: 80, full: 120 },
-    { name: "Aloo Jeera", half: 70, full: 100 },
-    { name: "Raita", half: 70, full: 100 },
-    { name: "Mix Vegetable Raita", half: 90, full: 130 },
-    { name: "Kadhi Pakoda", half: 80, full: 150, description: "Thursday only" },
+  Paratha: [
+    { name: "Aloo Paratha", price: 50 },
+    { name: "Onion Paratha", price: 70 },
+    { name: "Paneer Paratha", price: 80 },
+    { name: "Gobhi Paratha", price: 70 },
+    { name: "Muli Paratha", price: 70 },
+    { name: "Mix Paratha", price: 100, description: "Aloo + Onion + Paneer" },
   ],
-  Breads: [
-    { name: "Tawa Roti", price: 8 },
-    { name: "Tawa Roti (Butter)", price: 10 },
-    { name: "Multigrain Roti", price: 25 },
-    { name: "Paratha", price: 20 },
-    { name: "Puri", price: 10 },
-  ],
-  Rice: [
-    { name: "Plain Rice", half: 60, full: 100 },
-    { name: "Jeera Rice", half: 80, full: 120 },
+  Snacks: [
+    { name: "Burger", price: 50 },
+    { name: "French Fries", price: 120 },
+    { name: "Maggi", price: 50 },
+    { name: "Masala Maggi", price: 70 },
+    { name: "Idli Sambhar", price: 80 },
   ],
   Beverages: [
     { name: "Water Bottle", note: "MRP" },
@@ -116,14 +68,35 @@ const itemsByCategory = {
     { name: "Mango Shake", price: 60 },
     { name: "Banana Shake", price: 50 },
     { name: "Sweet Lassi", price: 60 },
-    { name: "Mango Lassi", price: 80 },
-    { name: "Strawberry Lassi", price: 80 },
   ],
-  Snacks: [
-    { name: "Onion Pakoda", price: 120 },
-    { name: "Aloo Pakoda", price: 100 },
-    { name: "Maggi", price: 40 },
-    { name: "Masala Maggi", price: 60 },
+  "Main Course": [
+    { name: "Shahi Paneer", half: 160, full: 250 },
+    { name: "Paneer Butter Masala", half: 140, full: 220 },
+    { name: "Kadhai Paneer", half: 140, full: 220 },
+    { name: "Paneer Do Pyaza", half: 140, full: 220 },
+    { name: "Matar Paneer", half: 120, full: 200 },
+    { name: "Dal Fry", half: 80, full: 120 },
+    { name: "Dal Tadka", half: 90, full: 150 },
+    { name: "Plain Dal", half: 70, full: 100 },
+    { name: "Chola", half: 70, full: 100 },
+    { name: "Rajma", half: 70, full: 100 },
+    { name: "Mix Veg", half: 90, full: 150 },
+    { name: "Aloo Matar", half: 80, full: 120 },
+    { name: "Aloo Jeera", half: 70, full: 100 },
+    { name: "Raita", half: 70, full: 100 },
+    { name: "Mix Vegetable Raita", half: 90, full: 130 },
+    { name: "Kadhi Pakoda", half: 100, full: 150, description: "Thursday only" },
+  ],
+  Rice: [
+    { name: "Plain Rice", half: 60, full: 100 },
+    { name: "Jeera Rice", half: 80, full: 120 },
+  ],
+  Breads: [
+    { name: "Tawa Roti", price: 8 },
+    { name: "Tawa Roti (Butter)", price: 10 },
+    { name: "Multigrain Roti", price: 30 },
+    { name: "Paratha", price: 25 },
+    { name: "Puri", price: 10 },
   ],
   "Combo Bowls": [
     { name: "Chole Rice Bowl", price: 99 },
@@ -135,73 +108,89 @@ const itemsByCategory = {
     {
       name: "Normal Thali",
       price: 100,
-      description: "Dal, Rice, 4 Rotis, Raita, Salad, and Sabji. For one person — one refill of dal/sabji included.",
+      description: "Dal, Rice, 4 Rotis, Raita, Salad, and Sabji. One thali per person; one refill of dal/sabji.",
     },
     {
       name: "Deluxe Thali",
       price: 160,
       description:
-        "Dal Fry, Jeera Rice, 4 Butter Rotis, Raita, Salad, Paneer Sabji, Sabji, Gulab Jamun / Vanilla Icecream. For one person — one refill of dal/sabji included.",
+        "Dal Fry, Jeera Rice, 4 Butter Rotis, Raita, Salad, Paneer Sabji, Sabji, Gulab Jamun / Vanilla Icecream. One thali per person; one refill of dal/sabji.",
     },
   ],
   Sweets: [{ name: "Gulab Jamun", price: 25 }],
 };
 
 async function run() {
-  console.log("Seeding restaurant menu (Ghar Ki Rasoi)...\n");
-  const batch = db.batch();
-  let categoryOrder = 0;
+  console.log(DRY ? "DRY RUN - nothing will be written\n" : "Updating menu...\n");
 
-  for (const categoryName of categories) {
-    const categoryId = `restaurant-${slugify(categoryName)}`;
-    const categoryRef = db.collection("menuCategories").doc(categoryId);
-    batch.set(
-      categoryRef,
-      {
-        name: categoryName,
-        slug: slugify(categoryName),
+  const [catSnap, itemSnap] = await Promise.all([
+    db.collection("menuCategories").where("context", "==", "restaurant").get(),
+    db.collection("menuItems").where("context", "==", "restaurant").get(),
+  ]);
+  const existingCats = new Set(catSnap.docs.map((d) => d.id));
+  const existingItems = new Map(itemSnap.docs.map((d) => [d.id, d.data().name]));
+
+  const ops = []; // { ref, data } | { ref, del: true }
+  const wantCats = new Set();
+  const wantItems = new Set();
+  let created = 0, updated = 0;
+
+  Object.keys(MENU).forEach((catName, catIdx) => {
+    const catId = `restaurant-${slug(catName)}`;
+    wantCats.add(catId);
+    const catRef = db.collection("menuCategories").doc(catId);
+    const catData = {
+      name: catName, slug: slug(catName), context: "restaurant",
+      displayOrder: catIdx, updatedAt: FieldValue.serverTimestamp(),
+    };
+    if (!existingCats.has(catId)) catData.published = true;
+    ops.push({ ref: catRef, data: catData });
+
+    MENU[catName].forEach((item, itemIdx) => {
+      const id = `restaurant-${slug(catName)}-${slug(item.name)}`;
+      wantItems.add(id);
+      const data = {
+        name: item.name,
+        description: item.description ?? "",
+        price: item.price ?? null,
+        priceHalf: item.half ?? null,
+        priceFull: item.full ?? null,
+        priceNote: item.note ?? null,
+        categoryId: catId,
         context: "restaurant",
-        published: true,
-        displayOrder: categoryOrder++,
+        vegType: "veg",
+        displayOrder: itemIdx,
         updatedAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true }
+      };
+      if (existingItems.has(id)) {
+        updated++;
+      } else {
+        created++;
+        Object.assign(data, { imageUrl: null, featured: false, published: true });
+      }
+      ops.push({ ref: db.collection("menuItems").doc(id), data });
+    });
+  });
+
+  const staleItems = [...existingItems].filter(([id]) => id.startsWith("restaurant-") && !wantItems.has(id));
+  const staleCats = [...existingCats].filter((id) => id.startsWith("restaurant-") && !wantCats.has(id));
+  staleItems.forEach(([id]) => ops.push({ ref: db.collection("menuItems").doc(id), del: true }));
+  staleCats.forEach((id) => ops.push({ ref: db.collection("menuCategories").doc(id), del: true }));
+
+  console.log(`Items: ${created} new, ${updated} updated, ${staleItems.length} removed`);
+  if (staleItems.length) console.log("Removed:", staleItems.map(([, n]) => n).join(", "));
+  if (staleCats.length) console.log("Removed categories:", staleCats.join(", "));
+
+  if (DRY) return console.log("\nDry run complete.");
+
+  for (let i = 0; i < ops.length; i += 400) {
+    const batch = db.batch();
+    ops.slice(i, i + 400).forEach((op) =>
+      op.del ? batch.delete(op.ref) : batch.set(op.ref, op.data, { merge: true })
     );
-
-    const items = itemsByCategory[categoryName] ?? [];
-    let itemOrder = 0;
-    for (const item of items) {
-      const itemId = `restaurant-${slugify(categoryName)}-${slugify(item.name)}`;
-      const itemRef = db.collection("menuItems").doc(itemId);
-      batch.set(
-        itemRef,
-        {
-          name: item.name,
-          description: item.description ?? "",
-          price: item.price ?? null,
-          priceHalf: item.half ?? null,
-          priceFull: item.full ?? null,
-          priceNote: item.note ?? null,
-          categoryId,
-          context: "restaurant",
-          vegType: "veg", // 100% pure vegetarian restaurant — no non-veg items exist
-          imageUrl: null,
-          featured: false,
-          published: true,
-          displayOrder: itemOrder++,
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      );
-    }
-    console.log(`  ${categoryName}: ${items.length} items`);
+    await batch.commit();
   }
-
-  await batch.commit();
-  console.log("\nDone. Visit /admin/restaurant/categories and /admin/restaurant/menu to review and edit.");
+  console.log("\nDone. Review in /admin/restaurant/menu");
 }
 
-run().catch((err) => {
-  console.error("Seed failed:", err);
-  process.exit(1);
-});
+run().catch((e) => { console.error("Seed failed:", e); process.exit(1); });

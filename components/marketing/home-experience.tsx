@@ -59,10 +59,11 @@ export function HomeExperience({
           onCheckAvailability={openInquiry}
           aboutText={venueInfo.aboutText}
           priceRangeText={venueInfo.priceRangeText}
+          backgroundImages={galleryImages.filter((i) => i.featured).map((i) => i.secureUrl)}
         />
+        <GallerySection categories={galleryCategories} images={galleryImages} />
         <Pillars venueInfo={venueInfo} />
         <FacilitiesServices services={services} facilities={facilities} />
-        <GallerySection categories={galleryCategories} images={galleryImages} />
         <VirtualTourSlot tour={tour} />
         <ReviewsSection reviews={reviews} />
         <FaqAccordion faqs={faqs} />
